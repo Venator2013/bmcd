@@ -47,7 +47,23 @@ pub static SUPPORTED_DEVICES: Lazy<HashMap<(u16, u16), FactoryItemCreator>> = La
         rockusb_fwudate::RK3588_VID_PID,
         Box::new(|device, logging| {
             let clone = device.clone();
-            Box::pin(async move { new_rockusb_transport(clone, &logging).await.map(Into::into) })
+            Box::pin(async move {
+                new_rockusb_transport(clone, &logging, rockusb_fwudate::SPL_LOADER_RK3588)
+                    .await
+                    .map(Into::into)
+            })
+        }),
+    );
+
+    creators.insert(
+        rockusb_fwudate::RK3566_VID_PID,
+        Box::new(|device, logging| {
+            let clone = device.clone();
+            Box::pin(async move {
+                new_rockusb_transport(clone, &logging, rockusb_fwudate::SPL_LOADER_RK3566)
+                    .await
+                    .map(Into::into)
+            })
         }),
     );
 

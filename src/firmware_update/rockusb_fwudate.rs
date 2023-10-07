@@ -26,12 +26,16 @@ use rusb::GlobalContext;
 use std::{mem::size_of, ops::Range, time::Duration};
 use tokio::sync::mpsc::Sender;
 
-const SPL_LOADER_RK3588: &[u8] = include_bytes!("./rk3588_spl_loader_v1.08.111.bin");
+pub const SPL_LOADER_RK3588: &[u8] = include_bytes!("./rk3588_spl_loader_v1.08.111.bin");
+pub const SPL_LOADER_RK3566: &[u8] = include_bytes!("./rk356x_spl_loader_v1.10.111.bin");
 
 pub const RK3588_VID_PID: (u16, u16) = (0x2207, 0x350b);
+pub const RK3566_VID_PID: (u16, u16) = (0x2207, 0x350a);
+
 pub async fn new_rockusb_transport(
     device: rusb::Device<GlobalContext>,
     logging: &Sender<FlashProgress>,
+    loader: &'static [u8],
 ) -> Result<StdTransportWrapper<TransportIO<Transport>>, FlashingError> {
     let mut transport = Transport::from_usb_device(device.open().map_err_into_logged_usb(logging)?)
         .map_err(|_| FlashingError::UsbError)?;
@@ -43,7 +47,7 @@ pub async fn new_rockusb_transport(
             .into()
     {
         info!("Maskrom mode detected. loading usb-plug..");
-        transport = download_boot(&mut transport, logging).await?;
+        transport = download_boot(&mut transport, logging, loader).await?;
         logging
             .try_send(FlashProgress {
                 status: FlashStatus::Setup,
@@ -68,8 +72,9 @@ impl StdFwUpdateTransport for TransportIO<Transport> {}
 async fn download_boot(
     transport: &mut Transport,
     logging: &Sender<FlashProgress>,
+    loader: &'static [u8],
 ) -> Result<Transport, FlashingError> {
-    let boot_entries = parse_boot_entries(SPL_LOADER_RK3588).map_err_into_logged_io(logging)?;
+    let boot_entries = parse_boot_entries(loader).map_err_into_logged_io(logging)?;
     load_boot_entries(transport, boot_entries)
         .await
         .map_err_into_logged_io(logging)?;
