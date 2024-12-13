@@ -40,14 +40,8 @@ use app::{bmc_application::BmcApplication, event_application::run_event_listener
 use clap::{command, value_parser, Arg};
 use config::Log;
 use futures::future::join_all;
-use openssl::{
-    pkey::{PKey, Private},
-    ssl::{SslAcceptor, SslAcceptorBuilder, SslMethod},
-    x509::X509,
-};
+use openssl::ssl::{SslAcceptor, SslAcceptorBuilder, SslMethod};
 use std::{
-    fs::OpenOptions,
-    io::Read,
     path::{Path, PathBuf},
     sync::Arc,
 };
