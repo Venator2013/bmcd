@@ -176,32 +176,13 @@ fn config_path() -> PathBuf {
         .into()
 }
 
-fn load_keys_from_pem<P: AsRef<Path>>(
-    private_key: P,
-    certificate: P,
-) -> anyhow::Result<(PKey<Private>, X509)> {
-    let mut pkey = Vec::new();
-    let mut cert = Vec::new();
-    OpenOptions::new()
-        .read(true)
-        .open(private_key)
-        .context("could not open private key file")?
-        .read_to_end(&mut pkey)?;
-    OpenOptions::new()
-        .read(true)
-        .open(certificate)
-        .context("could not open cert file")?
-        .read_to_end(&mut cert)?;
-
-    let rsa_key = PKey::private_key_from_pem(&pkey)?;
-    let x509 = X509::from_pem(&cert)?;
-    Ok((rsa_key, x509))
-}
-
 fn load_tls_config(config: &Config) -> anyhow::Result<SslAcceptorBuilder> {
-    let (private_key, cert) = load_keys_from_pem(&config.tls.private_key, &config.tls.certificate)?;
     let mut tls = SslAcceptor::mozilla_intermediate(SslMethod::tls())?;
-    tls.set_private_key(&private_key)?;
-    tls.set_certificate(&cert)?;
+    tls.set_private_key_file(&config.tls.private_key, openssl::ssl::SslFiletype::PEM)
+        .context("could not open private key file")?;
+    // read the certificate chain
+    tls.set_certificate_chain_file(&config.tls.certificate)
+        .context("could not open certificate chain file")?;
+    
     Ok(tls)
 }
